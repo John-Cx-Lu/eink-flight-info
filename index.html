@@ -1,0 +1,117 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>E-ink航班信息</title><style>
+:root{color-scheme:light;--ink:#172d31;--soft:#6c7f81;--line:#e2e9e8;--accent:#126b60;--bg:#f3f6f5}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:680px;margin:auto;padding:24px 18px calc(28px + env(safe-area-inset-bottom))}h1{font-size:23px;letter-spacing:-.6px;margin:2px 0 20px;font-weight:750}h2{font-size:16px;margin:0 0 16px;letter-spacing:.3px}section{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;margin:14px 0;box-shadow:0 3px 12px #17352b04}section[aria-label]{background:#e9f2ef;border-color:#d4e5de;padding:16px}p{margin:10px 0;font-size:13px;color:var(--soft);overflow-wrap:anywhere}.buttons{display:flex;flex-wrap:wrap;gap:8px}button{font:600 14px/1.3 inherit;font-family:inherit;font-size:14px;min-height:44px;touch-action:manipulation;padding:11px 14px;border:1px solid #ccdcd7;background:#f3f8f6;color:var(--accent);border-radius:11px;cursor:pointer;transition:background .15s}.buttons button{flex:1 1 90px}button:disabled{opacity:.4;cursor:default}button:active:not(:disabled){background:#dcebe6}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #8acabb;outline-offset:2px}#connect,#send{background:var(--accent);border-color:var(--accent);color:white}#send{display:block;width:100%;min-height:49px;font-size:16px;margin-top:14px}#status{font-size:14px;font-weight:650;color:var(--accent);margin:12px 0 0;overflow-wrap:anywhere}label{display:block;font-size:13px;font-weight:550;color:#566d70;margin:13px 0 0}input,textarea,select{display:block;width:100%;min-width:0;max-width:100%;margin-top:6px;font:400 16px/1.5 inherit;font-family:inherit;font-size:16px;color:var(--ink);border:1px solid #dce5e2;background:#fbfcfc;border-radius:10px;padding:10px 11px;min-height:45px}textarea{resize:vertical;min-height:112px}input::placeholder{color:#9ba9a8}select{padding-right:24px}input[type=file]{font-size:13px;padding:9px}input[type=file]::file-selector-button{border:0;border-radius:6px;background:#e5eeea;padding:7px 10px;color:var(--accent);margin-right:10px}.flight-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}canvas{display:block;width:100%;max-width:592px;height:auto;image-rendering:pixelated;border:1px solid #d6dfdc;border-radius:7px;background:white;margin:22px auto 0}progress{display:block;width:100%;height:5px;margin-top:10px;accent-color:var(--accent)}#result{font-size:13px;margin:10px 0;color:var(--ink)}#flightValidation{color:#a63c2d}#textLimits,#imageInfo{font-size:12px;color:var(--soft)}[hidden]{display:none!important}#result:empty,#flightValidation:empty,#imageInfo:empty{display:none}#imagePanel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}#imagePanel>label:first-child,#imageInfo{grid-column:1/-1}
+@media(max-width:420px){main{padding:18px 12px calc(20px + env(safe-area-inset-bottom))}h1{font-size:21px;margin-bottom:16px}section{padding:16px;border-radius:15px}.flight-fields{gap:0 10px}label{font-size:12px}button{padding:10px}section[aria-label]{padding:14px}.buttons{gap:6px}}
+@media(max-width:340px){#imagePanel{grid-template-columns:1fr}.buttons button{flex-basis:100px}}
+@media(prefers-reduced-motion:reduce){button{transition:none}}
+.flight-column{min-width:0}.flight-column h3{font-size:13px;margin:16px 0 0;color:var(--accent)}
+</style><main><h1>E-ink航班信息</h1>
+<section aria-label="连接设备"><div class="buttons"><button id="connect">连接设备</button><button id="disconnect" disabled>断开连接</button><button id="sync" disabled>同步时间</button></div><p id="status" role="status">未连接</p></section>
+<section><h2>用户自定义内容</h2><label>内容来源<select id="source"><option value="flight" selected>航班信息（竖屏 128×296）</option><option value="flightLandscape">航班信息（横屏）</option><option value="text">文字卡片</option><option value="image">本地图片</option></select></label><div id="flightPanel"><div class="flight-fields"><div class="flight-column"><h3>必填信息</h3><label>航班号 · HU + 3～5位<input id="flightNumber" maxlength="5" placeholder="1234" autocomplete="off" required></label><label>CG · 3位数字<input id="cg" maxlength="4" inputmode="decimal" placeholder="28.5" required></label><label>Trim方向<select id="trimDirection" required><option>UP</option><option>DN</option></select></label><label>Trim数值 · 2位数字<input id="trim" maxlength="3" inputmode="decimal" placeholder="1.2" required></label></div><div class="flight-column"><h3>选填信息</h3><label>DEP · 自动小数点<input id="dep" maxlength="7" inputmode="decimal" placeholder="123.45"></label><label>GW · 3～4位数字<input id="gw" maxlength="5" inputmode="decimal" placeholder="65.4 / 165.4"></label><label>S：· 3位数字<input id="s" maxlength="3" inputmode="numeric" placeholder="135"></label><label>O：· 3位数字<input id="o" maxlength="3" inputmode="numeric" placeholder="145"></label></div></div><label>提示信息 · 最多12字<input id="line7" placeholder="输入备注" autocomplete="off"></label><p id="flightValidation" role="status"></p></div><div id="textPanel" hidden><label>标题（最多12汉字／24英文数字，含标点）<input id="title" value="今日提醒"></label><label>正文（最多3行，每行15汉字／30英文数字，含标点）<textarea id="body" rows="3">保持好奇，慢慢向前。
+记得喝水，适当休息。</textarea></label><p id="textLimits" role="status"></p></div><div id="imagePanel" hidden><label>本地图片<input id="file" type="file" accept="image/png,image/jpeg,image/webp,image/bmp"></label><label>图片方向<select id="rotation"><option value="auto">自动：长边横放</option><option value="0">不旋转</option><option value="90">顺时针90°</option><option value="180">旋转180°</option><option value="270">逆时针90°</option></select></label><label>适配方式<select id="fit"><option value="height">高度128：宽边裁切或留白</option><option value="cover">铺满屏幕：裁切多余部分</option><option value="contain">完整显示：不足区域留白</option></select></label><label>裁切位置<select id="anchor"><option value="0.5">居中</option><option value="0">左侧／顶部</option><option value="1">右侧／底部</option></select></label><label>灰度处理<select id="tone"><option value="dither">三色抖动：红色也保留深浅</option><option value="threshold">三色就近量化：文字色块优先</option></select></label><p id="imageInfo" class="muted"></p></div><canvas width="296" height="128" aria-label="自定义内容预览"></canvas><button id="send" disabled>上传并显示</button><p id="result" role="status" aria-live="polite"></p><progress id="progress" max="40" value="0" aria-label="上传进度"></progress></section>
+<section><h2>设备自主显示</h2><div class="buttons"><button id="clock" disabled>内置时钟</button><button id="calendar" disabled>内置日历</button></div></section></main><script>
+'use strict';
+const $=id=>document.getElementById(id),canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');
+const S='13187b10-eba9-a3ba-044e-83d3217d9a38',C='4b646063-6264-f3a7-8941-e65356ea82fe',RS='00001f10-0000-1000-8000-00805f9b34fb',RC='00001f1f-0000-1000-8000-00805f9b34fb';
+let device=null,control=null,epd=null,busy=false,image=null,lastUpload=0;const records=[];
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+function log(s){records.push(new Date().toISOString()+' '+s);if(records.length>200)records.shift();}
+function update(){const ready=!!device?.gatt?.connected&&!!control&&!!epd;for(const id of ['sync','clock','calendar','send'])$(id).disabled=!ready||busy;$('connect').disabled=busy||!!device?.gatt?.connected||!navigator.bluetooth||!window.isSecureContext;$('disconnect').disabled=busy||!device?.gatt?.connected;}
+async function run(label,fn){if(busy){$('result').textContent='当前操作进行中，请稍候';return;}busy=true;update();$('result').textContent=label+'…';try{if(!device?.gatt?.connected)throw Error('请先连接设备');await fn();$('result').textContent=label+'：指令已发送，请观察设备。';log($('result').textContent);}catch(e){$('result').textContent=label+'失败：'+e.message;log($('result').textContent);}finally{busy=false;update();}}
+async function write(ch,data){if(!device?.gatt?.connected||!ch)throw Error('设备未连接');await timedWrite(ch,data);}
+async function command(bytes){log('控制指令 '+Array.from(bytes,n=>n.toString(16).padStart(2,'0')).join(' '));await write(control,Uint8Array.from(bytes));}
+async function selectMode(mode,style){await command(style===undefined?[0xe1,mode]:[0xe1,mode,style]);await delay(300);if(mode!==0)await command([0xe2]);}
+function timePacket(d){const localSeconds=Math.floor(d.getTime()/1000)-d.getTimezoneOffset()*60;const p=new Uint8Array(10),v=new DataView(p.buffer);p[0]=0xdd;v.setUint32(1,localSeconds,false);v.setUint16(5,d.getFullYear(),false);p[7]=d.getMonth()+1;p[8]=d.getDate();p[9]=d.getDay()||7;return p;}
+function textUnits(text){return Array.from(text).reduce((n,c)=>n+(c.codePointAt(0)<=127?1:2),0);}
+function takeUnits(text,max){let result='',used=0;for(const c of text){const n=c.codePointAt(0)<=127?1:2;if(used+n>max)break;result+=c;used+=n;}return result;}
+function cardLines(value){const lines=[''];for(const c of value.replace(/\r\n?/g,'\n')){if(c==='\n'){if(lines.length===3)break;lines.push('');continue;}if(textUnits(lines.at(-1)+c)>30){if(lines.length===3)break;lines.push('');}lines[lines.length-1]+=c;}return lines;}
+function drawCard(){const title=takeUnits($('title').value,24),lines=cardLines($('body').value);ctx.fillStyle='red';ctx.fillRect(0,0,296,34);ctx.fillStyle='white';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 22px sans-serif';ctx.fillText(title,148,18);ctx.fillStyle='black';ctx.font='bold 18px sans-serif';for(let i=0;i<lines.length;i++)ctx.fillText(lines[i],148,50+i*29);$('textLimits').textContent='标题 '+textUnits(title)+'/24 · 正文 '+lines.length+'/3行';}
+async function timedWrite(ch,data){const target=device;let timeout;try{await Promise.race([ch.writeValueWithResponse(data),new Promise((_,reject)=>{timeout=setTimeout(()=>{target?.gatt?.disconnect();reject(Error('蓝牙写入超时，已断开连接，请重新连接后重试'));},12000);})]);}finally{clearTimeout(timeout);}}
+function imageLayout(width,height,rotation,fit,anchor){
+ const angle=rotation==='auto'?(height>width?90:0):Number(rotation);
+ const swap=angle===90||angle===270,w=swap?height:width,h=swap?width:height;
+ const scale=fit==='height'?128/h:fit==='cover'?Math.max(296/w,128/h):Math.min(296/w,128/h);
+ return {angle,w,h,scale,x:(296-w*scale)*anchor,y:(128-h*scale)*anchor};
+}
+function triColor(data,width,height,dither){
+ // Diffuse errors in linear-light RGB so red coverage also encodes tone.
+ const linear=v=>{v/=255;return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4);};
+ const work=new Float32Array(width*height*3);
+ for(let i=0;i<width*height;i++)for(let c=0;c<3;c++)work[i*3+c]=linear(data[i*4+c]);
+ const palette=[[0,0,0],[1,1,1],[1,0,0]];
+ function spread(x,y,error,weight){if(x<0||x>=width||y>=height)return;const k=(y*width+x)*3;for(let c=0;c<3;c++)work[k+c]+=error[c]*weight;}
+ for(let y=0;y<height;y++){
+ const dir=y%2===0?1:-1;
+ for(let step=0;step<width;step++){
+ const x=dir===1?step:width-1-step,k=(y*width+x)*3,j=(y*width+x)*4;
+ const v=[work[k],work[k+1],work[k+2]];let best=0,distance=Infinity;
+ for(let p=0;p<3;p++){let dist=0;for(let c=0;c<3;c++)dist+=[0.2126,0.7152,0.0722][c]*Math.pow(Math.max(0,Math.min(1,v[c]))-palette[p][c],2);if(dist<distance){distance=dist;best=p;}}
+ const chosen=palette[best];for(let c=0;c<3;c++)data[j+c]=chosen[c]*255;data[j+3]=255;
+ if(dither){const e=v.map((n,c)=>n-chosen[c]);spread(x+dir,y,e,7/16);spread(x-dir,y+1,e,3/16);spread(x,y+1,e,5/16);spread(x+dir,y+1,e,1/16);}
+ }
+ }
+ return data;
+}
+function formatGW(value){const d=String(value).replace(/\D/g,'').slice(0,4);return d.length>=3?d.slice(0,-1)+'.'+d.slice(-1):d;}
+function formatDep(value){const digits=String(value).replace(/\D/g,'').slice(0,6);return digits.length>3?digits.slice(0,3)+'.'+digits.slice(3):digits;}
+function connectionLabel(d){const name=(d.name||'').trim();if(name&&!/x{3,}/i.test(name))return '已连接 '+name;return '已连接 · 设备未提供真实NRF编号（浏览器ID：'+(d.id||'未提供')+'）';}
+const flightIds=['flightNumber','gw','cg','trimDirection','trim','s','o','dep','line7'];
+function flightData(){return Object.fromEntries(flightIds.map(id=>[id,$(id).value]));}
+function validateFlight(d){const bad=[];for(const id of ['flightNumber','cg','trim'])if(!d[id])bad.push(id==='flightNumber'?'航班号':id==='cg'?'CG':'Trim数值');if(!['UP','DN'].includes(d.trimDirection))bad.push('Trim方向');for(const [id,re] of [['flightNumber',/^[A-Z0-9]{3,5}$/],['gw',/^\d{2,3}\.\d$/],['cg',/^\d{2}\.\d$/],['trim',/^\d\.\d$/],['s',/^\d{3}$/],['o',/^\d{3}$/],['dep',/^\d{3}(?:\.\d{1,3})?$/]])if(d[id]&&!re.test(d[id]))bad.push(id==='flightNumber'?'航班号':id.toUpperCase());if(Array.from(d.line7).length>12)bad.push('备注');return bad;}
+function drawFlight(){const d=flightData(),invalid=validateFlight(d);$('flightValidation').textContent=invalid.length?'请补全：'+invalid.join('、'):'';
+ function row(text,y,h,size,fg='black',bg='white',label=''){
+  const x=4,w=120;ctx.fillStyle=bg;ctx.fillRect(x,y,w,h);if(!text)return;
+  ctx.save();ctx.beginPath();ctx.rect(x+2,y,w-4,h);ctx.clip();ctx.textAlign='center';ctx.textBaseline='middle';let n=size;
+  do{ctx.font='bold '+n+'px sans-serif';if(ctx.measureText(label+text).width<=w-8)break;n--;}while(n>9);
+  if(label){const pw=ctx.measureText(label).width,vw=ctx.measureText(text).width,left=x+(w-pw-vw)/2;ctx.textAlign='left';ctx.fillStyle='black';ctx.fillText(label,left,y+h/2+1);ctx.fillStyle=fg;ctx.fillText(text,left+pw,y+h/2+1);}
+  else {ctx.fillStyle=fg;ctx.fillText(text,x+w/2,y+h/2+1);}ctx.restore();
+ }
+ row(d.flightNumber?'HU'+d.flightNumber:'',4,38,30,'white','red');
+ ctx.fillStyle='black';ctx.fillRect(4,43,120,1);
+ row(d.gw?'GW:'+d.gw+'t':'',44,33,25);
+ row(d.cg?'CG:'+d.cg+'%':'',79,33,25,'red');
+ row(d.trim?'Trim:'+d.trimDirection+' '+d.trim:'',114,33,24,'white','black');
+ row(d.s,149,32,27,'red','white',d.s?'S:':'');
+ row(d.o,183,32,27,'red','white',d.o?'O:':'');
+ row(d.dep?'DEP:'+d.dep:'',217,33,24,'white','black');
+ const note=d.line7.trim()||'起落安妥';const chars=Array.from(note);
+ if(chars.length>6){row(chars.slice(0,6).join(''),253,19,18);row(chars.slice(6).join(''),273,19,18);}
+ else row(note,253,39,24);
+}
+function drawFlightLandscape(){const d=flightData(),invalid=validateFlight(d);$('flightValidation').textContent=invalid.length?'请补全：'+invalid.join('、'):'';
+ function cell(text,x,y,w,h,size,fg='black',bg='white'){ctx.fillStyle=bg;ctx.fillRect(x,y,w,h);if(!text)return;ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.fillStyle=fg;ctx.textAlign='center';ctx.textBaseline='middle';let n=size;do{ctx.font='bold '+n+'px sans-serif';if(ctx.measureText(text).width<=w-6)break;n--;}while(n>9);ctx.fillText(text,x+w/2,y+h/2+1);ctx.restore();}
+ cell(d.flightNumber?'HU'+d.flightNumber:'',4,5,144,33,28,'white','red');cell(d.dep?'DEP:'+d.dep:'',150,5,142,33,24,'white','black');
+ cell(d.gw?'GW:'+d.gw+'t':'',4,39,144,27,23);cell(d.cg?'CG:'+d.cg+'%':'',150,39,142,27,23,'red');
+ function speedCell(label,value,x,w){ctx.fillStyle='white';ctx.fillRect(x,68,w,27);if(!value)return;ctx.save();ctx.beginPath();ctx.rect(x,68,w,27);ctx.clip();let n=22;do{ctx.font='bold '+n+'px sans-serif';if(ctx.measureText(label+':'+value).width<=w-4)break;n--;}while(n>9);ctx.textAlign='left';ctx.textBaseline='middle';const prefix=label+':',pw=ctx.measureText(prefix).width,vw=ctx.measureText(value).width,left=x+(w-pw-vw)/2;ctx.fillStyle='black';ctx.fillText(prefix,left,82.5);ctx.fillStyle='red';ctx.fillText(value,left+pw,82.5);ctx.restore();}
+ const speeds=[['S',d.s],['O',d.o]].filter(([,value])=>value);
+ if(speeds.length){const sw=speeds.length===2?70:90;for(let i=0;i<speeds.length;i++)speedCell(speeds[i][0],speeds[i][1],4+i*(sw+2),sw);const tx=4+speeds.length*(sw+2);cell(d.trim?'Trim:'+d.trimDirection+' '+d.trim:'',tx,68,292-tx,27,22,'white','black');}
+ else cell(d.trim?'Trim:'+d.trimDirection+' '+d.trim:'',4,68,288,27,22,'white','black');
+ cell(d.line7.trim()?d.line7:'起落安妥',4,97,288,26,22);
+
+ if(!flightIds.some(id=>id!=='trimDirection'&&d[id])){ctx.fillStyle='black';ctx.font='16px sans-serif';ctx.fillText('填写航班信息后预览',12,55);}
+}
+function draw(){const source=$('source').value;canvas.width=source==='flight'?128:296;canvas.height=source==='flight'?296:128;canvas.style.maxWidth=source==='flight'?'256px':'592px';$('flightPanel').hidden=source!=='flight'&&source!=='flightLandscape';$('textPanel').hidden=source!=='text';$('imagePanel').hidden=source!=='image';ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);if(source==='flight'||source==='flightLandscape'){if(source==='flight')drawFlight();else drawFlightLandscape();$('imageInfo').textContent='';}else if($('source').value==='image'){if(image){
+ const l=imageLayout(image.naturalWidth,image.naturalHeight,$('rotation').value,$('fit').value,Number($('anchor').value));
+ ctx.save();ctx.translate(l.x+l.w*l.scale/2,l.y+l.h*l.scale/2);ctx.rotate(l.angle*Math.PI/180);ctx.scale(l.scale,l.scale);ctx.drawImage(image,-image.naturalWidth/2,-image.naturalHeight/2);ctx.restore();
+ $('imageInfo').textContent='原图 '+image.naturalWidth+'×'+image.naturalHeight+' → 旋转'+l.angle+'° → '+Math.round(l.w*l.scale)+'×'+Math.round(l.h*l.scale)+'，输出296×128';
+ }else{ctx.fillStyle='black';ctx.font='14px sans-serif';ctx.fillText('请选择本地图片',12,50);}
+ }else{drawCard();$('imageInfo').textContent='';}
+ const im=ctx.getImageData(0,0,canvas.width,canvas.height);triColor(im.data,canvas.width,canvas.height,$('source').value==='image'&&$('tone').value==='dither');ctx.putImageData(im,0,0);
+}
+function pack(data,width=296){const bw=new Uint8Array(4736),red=new Uint8Array(4736);let bit=0;for(let x=295;x>=0;x--)for(let y=0;y<128;y++){const i=(width===128?(x*128+127-y):(y*296+x))*4,r=data[i],g=data[i+1],b=data[i+2];const isRed=r>100&&r>g*1.4&&r>b*1.4;const isWhite=!isRed&&(r+g+b)/3>=160;const mask=1<<(7-(bit%8));if(isWhite)bw[bit>>3]|=mask;if(isRed)red[bit>>3]|=mask;bit++;}return [bw,red];}
+function packets(plane,channel){const out=[];for(let offset=0;offset<plane.length;offset+=240){const payload=plane.slice(offset,offset+240),p=new Uint8Array(4+payload.length);p.set([3,channel,offset>>8,offset&255]);p.set(payload,4);out.push(p);}return out;}
+
+$('connect').onclick=async()=>{if(busy)return;busy=true;update();try{device=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'NRF'}],optionalServices:[S,RS]});device.addEventListener('gattserverdisconnected',()=>{control=null;epd=null;$('status').textContent='已断开';log('设备断开');update();});const server=await device.gatt.connect();control=await (await server.getPrimaryService(RS)).getCharacteristic(RC);epd=await (await server.getPrimaryService(S)).getCharacteristic(C);if(!control.properties.write||!epd.properties.write)throw Error('接口不支持带响应写入');await epd.startNotifications();epd.addEventListener('characteristicvaluechanged',e=>{const v=e.target.value;log('设备通知 '+Array.from(new Uint8Array(v.buffer,v.byteOffset,v.byteLength),n=>n.toString(16).padStart(2,'0')).join(' '));});$('status').textContent=connectionLabel(device);log('连接成功，尚未更改设备显示。');}catch(e){log('连接失败 '+e.name+' '+e.message);device?.gatt?.disconnect();control=null;epd=null;$('status').textContent='连接失败，请重试。';}finally{busy=false;update();}};
+$('disconnect').onclick=()=>device?.gatt?.disconnect();
+$('sync').onclick=()=>run('同步时间',async()=>{const d=new Date();log('同步本地时间 '+d.toLocaleString()+'；UTC偏移分钟='+(-d.getTimezoneOffset()));await command(timePacket(d));await delay(300);await command([0xe2]);});
+$('clock').onclick=()=>run('切换内置时钟',()=>selectMode(2));
+$('calendar').onclick=()=>run('切换内置日历',()=>selectMode(1));
+$('send').onclick=()=>run('上传自定义内容',async()=>{if(['flight','flightLandscape'].includes($('source').value)){const invalid=validateFlight(flightData());if(invalid.length)throw Error('请检查：'+invalid.join('、'));}if(Date.now()-lastUpload<30000)throw Error('距上次传图不足30秒，请稍后重试');if($('source').value==='image'&&!image)throw Error('请先选择图片');draw();const planes=pack(ctx.getImageData(0,0,canvas.width,canvas.height).data,canvas.width);const list=[...packets(planes[0],255),...packets(planes[1],0)];
+ // Exit saved-image mode before transfer; do not refresh the intermediate clock frame.
+ await command([0xe1,2,1]);await delay(300);$('progress').value=0;$('result').textContent='设备已准备，正在发送画面…';
+ for(let n=0;n<list.length;n++){await write(epd,list[n]);$('progress').value=n+1;$('result').textContent='正在传输 '+(n+1)+'/40';}await delay(300);await write(epd,Uint8Array.of(1));lastUpload=Date.now();log('双图层各4736字节、40包上传完成；未发送e100，显示效果待观察。');});
+for(const id of ['source','rotation','fit','anchor','tone'])$(id).addEventListener('input',draw);
+for(const id of ['title','body']){let composing=false;const commit=()=>{const input=$(id),before=input.value;input.value=id==='title'?takeUnits(before,24):cardLines(before).join('\n');draw();if(input.value!==before&&id==='title')$('textLimits').textContent+=' · 标题已达到长度限制';};$(id).addEventListener('compositionstart',()=>{composing=true;});$(id).addEventListener('compositionend',()=>{composing=false;commit();});$(id).addEventListener('input',e=>{if(!composing&&!e.isComposing)commit();});}
+for(const id of flightIds){const input=$(id);const commit=()=>{if(id==='flightNumber')input.value=input.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);else if(id==='gw')input.value=formatGW(input.value);else if(['cg','trim'].includes(id)){const digits=input.value.replace(/\D/g,'').slice(0,id==='trim'?2:3),n=id==='trim'?1:2;input.value=digits.length>n?digits.slice(0,n)+'.'+digits.slice(n):digits;}else if(id==='dep')input.value=formatDep(input.value);else if(['s','o'].includes(id))input.value=input.value.replace(/\D/g,'').slice(0,3);else if(id==='line7')input.value=Array.from(input.value).slice(0,12).join('');draw();};let composing=false;input.addEventListener('compositionstart',()=>{composing=true;});input.addEventListener('compositionend',()=>{composing=false;commit();});input.addEventListener('input',e=>{if(!composing&&!e.isComposing)commit();});}
+$('file').onchange=async()=>{const file=$('file').files[0];if(!file)return;const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{image=img;$('source').value='image';draw();URL.revokeObjectURL(url);};img.onerror=()=>{URL.revokeObjectURL(url);$('result').textContent='图片无法解码，请换PNG或JPEG。';};img.src=url;};
+if(!navigator.bluetooth||!window.isSecureContext)$('status').textContent='当前浏览器不支持蓝牙，请用Mac Chrome打开。';draw();update();
+</script></html>
